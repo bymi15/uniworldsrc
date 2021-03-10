@@ -1,6 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using Photon.Pun;
 using UnityEngine.SceneManagement;
 using TMPro;
@@ -47,15 +48,6 @@ public class ChatUI : MonoBehaviour
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         CanvasUtils.Hide(chatPanelGroup);
-        if (scene.name != "Connect")
-        {
-            string roomName = PhotonNetwork.CurrentRoom.Name;
-            if (roomName == null)
-            {
-                roomName = scene.name;
-            }
-            ChatManager.Instance.JoinChannel(roomName);
-        }
     }
 
     void OnDisable()
@@ -120,6 +112,8 @@ public class ChatUI : MonoBehaviour
         {
             ChatManager.Instance.Send(Instance.messageInputBox.text);
             Instance.messageInputBox.text = "";
+            EventSystem.current.SetSelectedGameObject(Instance.messageInputBox.gameObject, null);
+            Instance.messageInputBox.OnPointerClick(new PointerEventData(EventSystem.current));
         }
     }
 

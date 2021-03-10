@@ -2,12 +2,12 @@
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-public class MicToggleButton : MonoBehaviour
+public class AudioToggleButton : MonoBehaviour
 {
     private Button button;
     private RawImage rawImage;
-    public Texture micIcon, micMuteIcon;
-    public bool muted = true;
+    public Texture audioIcon, mutedAudioIcon;
+    public bool muted = false;
 
     void Awake()
     {
@@ -21,14 +21,14 @@ public class MicToggleButton : MonoBehaviour
         if (muted)
         {
             muted = false;
-            rawImage.texture = micIcon;
-            VoiceManager.UnmuteMic();
+            rawImage.texture = audioIcon;
+            VoiceManager.UnmuteAudio();
         }
         else
         {
             muted = true;
-            rawImage.texture = micMuteIcon;
-            VoiceManager.MuteMic();
+            rawImage.texture = mutedAudioIcon;
+            VoiceManager.MuteAudio();
         }
     }
 
@@ -39,11 +39,11 @@ public class MicToggleButton : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if(scene.name != "Connect")
+        if (scene.name != "Connect")
         {
-            muted = true;
-            rawImage.texture = micMuteIcon;
-            VoiceManager.MuteMic();
+            muted = false;
+            rawImage.texture = audioIcon;
+            VoiceManager.UnmuteAudio();
         }
     }
 

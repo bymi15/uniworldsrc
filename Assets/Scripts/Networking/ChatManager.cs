@@ -1,135 +1,31 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Photon.Chat;
 using Photon.Pun;
+using Photon.Realtime;
 using ExitGames.Client.Photon;
 using UnityEngine.SceneManagement;
 using System;
 
-public class ChatManager : MonoBehaviour, IChatClientListener
+public class ChatManager : MonoBehaviourPun
 {
     [Serializable]
     public class ClientMessage
     {
         public bool statusText;
+        public string sender;
         public string message;
 
-        public ClientMessage(string message, bool statusText = false){
+        public ClientMessage(string message, string sender, bool statusText = false){
             this.message = message;
+            this.sender = sender;
             this.statusText = statusText;
         }
     }
 
-    public void DebugReturn(DebugLevel level, string message)
-    {
-    }
-
-    public void OnChatStateChange(ChatState state)
-    {
-    }
-
-    public void OnConnected()
-    {
-        if (!connected)
-        {
-            Debug.Log("Successfully connected to server!");
-            connected = true;
-        }
-    }
-
-    public void OnDisconnected()
-    {
-        connected = false;
-        Debug.Log("Disconnected from server.");
-    }
-
-    public void OnGetMessages(string channelName, string[] senders, object[] messages)
-    {
-        if(ChatUI.Instance == null || channelName != this.channel)
-        {
-            return;
-        }
-
-        for(int i = 0; i < senders.Length; i++)
-        {
-            ClientMessage clientMessage = JsonUtility.FromJson<ClientMessage>(messages[i].ToString());
-            if (clientMessage.statusText)
-            {
-                ChatUI.DisplayMessage(clientMessage.message, true);
-            }
-            else
-            {
-                ChatUI.DisplayMessage(clientMessage.message, senders[i]);
-            }
-        }
-    }
-
-    public void OnPrivateMessage(string sender, object message, string channelName)
-    {
-        Debug.Log("Received private message: " + sender + ":: " + message);
-    }
-
-    public void OnStatusUpdate(string user, int status, bool gotMessage, object message)
-    {
-    }
-
-    public void OnSubscribed(string[] channels, bool[] results)
-    {
-        if (ChatUI.Instance == null || OnlineUsersUI.Instance == null)
-        {
-            return;
-        }
-        if (results[0])
-        {
-            onlineUsers = CurrentChannel().Subscribers;
-            OnlineUsersUI.SetChannelLabel(channel);
-            OnlineUsersUI.SetOnlineUsers(onlineUsers);
-            ChatUI.SetChannelLabel(channel);
-            ChatUI.SetOnlineUsersLabel(onlineUsers.Count);
-            ChatUI.ClearMessages();
-            Send(user + " has joined the room.", true);
-        }
-    }
-
-    public void OnUnsubscribed(string[] channels)
-    {
-        Debug.Log("Left channel " + channels[0] + "!");
-    }
-
-    public void OnUserSubscribed(string channel, string user)
-    {
-        if (ChatUI.Instance == null || channel != this.channel)
-        {
-            return;
-        }
-        onlineUsers.Add(user);
-        OnlineUsersUI.SetOnlineUsers(onlineUsers);
-        ChatUI.SetOnlineUsersLabel(onlineUsers.Count);
-    }
-
-    public void OnUserUnsubscribed(string channel, string user)
-    {
-        if (ChatUI.Instance == null || channel != this.channel)
-        {
-            return;
-        }
-        onlineUsers.Remove(user);
-        OnlineUsersUI.SetOnlineUsers(onlineUsers);
-        ChatUI.SetOnlineUsersLabel(onlineUsers.Count);
-        ChatUI.DisplayMessage(user + " has left the room.", true);
-        Debug.Log(user + " left the channel: " + channel);
-    }
-
     public static ChatManager Instance;
-    private ChatClient chatClient;
 
-    public HashSet<string> onlineUsers;
-
-    [SerializeField]
-    public string user;
-    public string channel;
-    public bool connected;
+    public Dictionary<int, string> onlineUsers;
 
     private void Awake()
     {
@@ -137,92 +33,70 @@ public class ChatManager : MonoBehaviour, IChatClientListener
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            onlineUsers = new HashSet<string>();
+            onlineUsers = new Dictionary<int, string>();
         }
         else
         {
             Destroy(gameObject);
         }
     }
-
-    public static void Connect(string user)
+    public static void JoinChat(string channel, Dictionary<int, Player> players)
     {
-        if (!string.IsNullOrWhiteSpace(user))
+        if (ChatUI.Instance == null || OnlineUsersUI.Instance == null)
         {
-            Debug.Log("Connecting to Photon Network Chat...");
-            Instance.user = user;
-            Instance.chatClient.Connect(PhotonNetwork.PhotonServerSettings.AppSettings.AppIdChat, PhotonNetwork.AppVersion, new AuthenticationValues(user));
+            return;
         }
+        Instance.onlineUsers.Clear();
+        foreach (KeyValuePair<int, Player> player in players)
+        {
+            Instance.onlineUsers.Add(player.Key, player.Value.NickName);
+        }
+        ChatUI.SetChannelLabel(channel);
+        ChatUI.SetOnlineUsersLabel(players.Count);
+        ChatUI.ClearMessages();
+        Instance.Send(PhotonNetwork.LocalPlayer.NickName + " has joined the room.", true);
     }
 
-    public ChatChannel CurrentChannel()
+    public static void UserJoinedChat(Player player)
     {
-        if(!connected || chatClient == null || channel == null)
+        if (ChatUI.Instance == null)
         {
-            return null;
+            return;
         }
-        return chatClient.PublicChannels[channel];
+        Instance.onlineUsers.Add(player.ActorNumber, player.NickName);
+        ChatUI.SetOnlineUsersLabel(Instance.onlineUsers.Count);
     }
 
-    public void JoinChannel(string channel)
+    public static void UserLeftChat(Player player)
     {
-        if (connected)
+        if (ChatUI.Instance == null)
         {
-            // Leave current channel before joining a new one
-            if(!string.IsNullOrWhiteSpace(this.channel))
-            {
-                chatClient.Unsubscribe(new string[] { this.channel });
-            }
-            this.channel = channel;
-            chatClient.Subscribe(channel, creationOptions: new ChannelCreationOptions { PublishSubscribers = true });
-            Debug.Log("Connecting to channel: " + channel + "...");
+            return;
         }
-        else
-        {
-            Debug.LogError("Cannot join a channel. Connection with server not yet established.");
-        }
+        Instance.onlineUsers.Remove(player.ActorNumber);
+        ChatUI.SetOnlineUsersLabel(Instance.onlineUsers.Count);
+        ChatUI.DisplayMessage(player.NickName + " has left the room.", true);
     }
 
     public void Send(string message, bool statusText = false)
     {
         if (!string.IsNullOrWhiteSpace(message))
         {
-            chatClient.PublishMessage(channel, JsonUtility.ToJson(new ClientMessage(message, statusText)));
+            photonView.RPC("SendMessage", RpcTarget.All, PhotonNetwork.LocalPlayer.NickName, message, statusText);
         }
     }
 
-    public void Disconnect()
+    [PunRPC]
+    void SendMessage(string sender, string message, bool statusText)
     {
-        chatClient.Disconnect();
-        SceneManager.LoadSceneAsync("Connect");
-    }
-
-    void Start()
-    {
-        chatClient = new ChatClient(this);
-    }
-
-    void Update()
-    {
-        if(chatClient != null)
+        ClientMessage clientMessage = new ClientMessage(message, sender, statusText);
+        if (clientMessage.statusText)
         {
-            chatClient.Service();
+            ChatUI.DisplayMessage(clientMessage.message, true);
         }
-    }
-
-    void OnDestroy()
-    {
-        if (chatClient != null)
+        else
         {
-            chatClient.Disconnect();
-        }
-    }
-
-    void OnApplicationQuit()
-    {
-        if (chatClient != null)
-        {
-            chatClient.Disconnect();
+            ChatUI.DisplayMessage(clientMessage.message, sender);
         }
     }
 }

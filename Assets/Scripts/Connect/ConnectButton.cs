@@ -21,7 +21,6 @@ public class ConnectButton : MonoBehaviour
         if (!string.IsNullOrWhiteSpace(nickname))
         {
             ConnectingUI.Show();
-            ChatManager.Connect(nickname);
             NetworkManager.Connect(nickname);
         }
     }

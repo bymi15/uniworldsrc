@@ -1,20 +1,23 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using UnityEngine.UI;
 using TMPro;
 
 public class OnlineUsersUI : MonoBehaviour
 {
     public static OnlineUsersUI Instance;
-    public GameObject onlineUsersPanel, onlineUserTextPrefab;
+    public GameObject onlineUsersPanel, onlineUserObjPrefab;
     public TextMeshProUGUI channelLabel, onlineUserCountLabel;
     private CanvasGroup canvasGroup;
+    private Dictionary<int, GameObject> onlineUserObjects;
 
     private void Awake()
     {
         if (!Instance)
         {
             Instance = this;
+            onlineUserObjects = new Dictionary<int, GameObject>();
             canvasGroup = GetComponentInChildren<CanvasGroup>();
             DontDestroyOnLoad(gameObject);
         }
@@ -53,22 +56,34 @@ public class OnlineUsersUI : MonoBehaviour
 
     public void ClearList()
     {
-        TextMeshProUGUI[] users = onlineUsersPanel.GetComponentsInChildren<TextMeshProUGUI>();
-        foreach (TextMeshProUGUI user in users)
+        foreach (KeyValuePair<int, GameObject> obj in onlineUserObjects)
         {
-            Destroy(user.gameObject);
+            Destroy(obj.Value);
+        }
+        onlineUserObjects.Clear();
+    }
+
+    public static void SetOnlineUsers(Dictionary<int, Photon.Realtime.Player> players)
+    {
+        Instance.onlineUserCountLabel.text = "[" + players.Count.ToString() + "]";
+        Instance.ClearList();
+        GameObject obj;
+        foreach (KeyValuePair<int, Photon.Realtime.Player> player in players)
+        {
+            int id = player.Value.ActorNumber;
+            string name = player.Value.NickName;
+            obj = Instantiate(Instance.onlineUserObjPrefab, Instance.onlineUsersPanel.transform);
+            obj.GetComponent<TextMeshProUGUI>().text = name;
+            obj.GetComponentInChildren<RawImage>().enabled = false;
+            Instance.onlineUserObjects.Add(id, obj);
         }
     }
 
-    public static void SetOnlineUsers(HashSet<string> users)
+    public static void SetUserSpeakingIcon(int userActorId, bool speaking)
     {
-        Instance.onlineUserCountLabel.text = "[" + users.Count.ToString() + "]";
-        Instance.ClearList();
-        TextMeshProUGUI textObject;
-        foreach (string user in users)
+        if (Instance.onlineUserObjects.ContainsKey(userActorId))
         {
-            textObject = Instantiate(Instance.onlineUserTextPrefab, Instance.onlineUsersPanel.transform).GetComponent<TextMeshProUGUI>();
-            textObject.text = user;
+            Instance.onlineUserObjects[userActorId].GetComponentInChildren<RawImage>().enabled = speaking;
         }
     }
 }

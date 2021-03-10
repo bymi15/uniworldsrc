@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
+using FrostweepGames.VoicePro;
 using Photon.Pun;
 using Photon.Realtime;
+using System.Collections.Generic;
 
 public class NetworkManager : MonoBehaviourPunCallbacks
 {
@@ -35,6 +37,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     public static void ChangeRoom(string roomName)
     {
         instance.changeRoomName = roomName;
+        NetworkRouter.Instance.Unregister(); // Dispose voice chat
         PhotonNetwork.LeaveRoom();
     }
 
@@ -70,6 +73,10 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     {
         string roomName = PhotonNetwork.CurrentRoom.Name;
         Debug.Log("PUN: joined room " + roomName);
+        NetworkRouter.Instance.Register(PhotonNetwork.LocalPlayer.ActorNumber, PhotonNetwork.LocalPlayer.NickName); // Init voice chat
+        ChatManager.JoinChat(roomName, PhotonNetwork.CurrentRoom.Players);
+        OnlineUsersUI.SetChannelLabel(roomName);
+        OnlineUsersUI.SetOnlineUsers(PhotonNetwork.CurrentRoom.Players);
         SceneFader.HideScene();
         if(roomName.StartsWith("Event Hall"))
         {
@@ -97,12 +104,14 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     public override void OnPlayerEnteredRoom(Player other)
     {
-        Debug.LogFormat("OnPlayerEnteredRoom() {0}", other.NickName);
+        ChatManager.UserJoinedChat(other);
+        OnlineUsersUI.SetOnlineUsers(PhotonNetwork.CurrentRoom.Players);
     }
 
     public override void OnPlayerLeftRoom(Player other)
     {
-        Debug.LogFormat("OnPlayerLeftRoom() {0}", other.NickName);
+        ChatManager.UserLeftChat(other);
+        OnlineUsersUI.SetOnlineUsers(PhotonNetwork.CurrentRoom.Players);
     }
 
     #endregion

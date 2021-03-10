@@ -1,5 +1,7 @@
 ﻿using FrostweepGames.Plugins.Native;
-using FrostweepGames.WebGLPUNVoice;
+using FrostweepGames.VoicePro;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -28,6 +30,32 @@ public class VoiceManager : MonoBehaviour
     private void Start()
     {
         CustomMicrophone.RequestMicrophonePermission();
+        recorder.RecordStartedEvent += HandleRecordStartedEvent;
+        recorder.RecordFailedEvent += HandleRecordFailedEvent;
+    }
+
+    void HandleRecordStartedEvent()
+    {
+        Debug.Log("mics: " + CustomMicrophone.devices.Length);
+        Debug.Log(CustomMicrophone.HasConnectedMicrophoneDevices() + "," + CustomMicrophone.HasMicrophonePermission() + "," + CustomMicrophone.devices[0]);
+        Debug.Log("Record started successfully!");
+    }
+
+    void HandleRecordFailedEvent(string res)
+    {
+        Debug.Log("Error! Failed to start recording.");
+        Debug.Log(res);
+    }
+
+    private void Update()
+    {
+        if(OnlineUsersUI.Instance != null)
+        {
+            foreach (KeyValuePair<int, Speaker> speaker in listener.Speakers)
+            {
+                OnlineUsersUI.SetUserSpeakingIcon(speaker.Key, speaker.Value.Playing);
+            }
+        }
     }
 
     public static void MuteMic()
@@ -39,9 +67,14 @@ public class VoiceManager : MonoBehaviour
         Instance.recorder.StartRecord();
     }
 
-    private static void ToggleRemoteMuteStatus(bool status)
+    public static void MuteAudio()
     {
-        Instance.listener.SetMuteStatus(status);
+        Instance.listener.SetMuteStatus(true);
+    }
+
+    public static void UnmuteAudio()
+    {
+        Instance.listener.SetMuteStatus(false);
     }
 
     private static void ToggleDebugEcho(bool status)
@@ -52,6 +85,16 @@ public class VoiceManager : MonoBehaviour
     private static void ToggleReliableTransmission(bool status)
     {
         Instance.recorder.reliableTransmission = status;
+    }
+
+    private static void ToggleVoiceDetection(bool status)
+    {
+        Instance.recorder.voiceDetectionEnabled = status;
+    }
+
+    private static void SetVoiceDetectionThreshold(float value)
+    {
+        Instance.recorder.voiceDetectionThreshold = value;
     }
 
     void OnEnable()
@@ -70,5 +113,7 @@ public class VoiceManager : MonoBehaviour
     void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        recorder.RecordStartedEvent -= HandleRecordStartedEvent;
+        recorder.RecordFailedEvent -= HandleRecordFailedEvent;
     }
 }
