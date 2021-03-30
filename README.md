@@ -15,3 +15,18 @@ Source code for UniWorld - UCL MEng Final Year Project with IBM
   2. Open the `Connect` scene (found in `Assets/Scenes/Connect.unity`)
   3. Select the `VoiceManager` game object and remove any scripts causing errors
   4. Attach `Listener` and `Speaker` scripts to the `VoiceManager` game object
+
+# Build and Deployment Guide
+1. Go to File > Build Settings
+2. Make sure WebGL is selected as the platform and click build
+3. Once the build is complete, the following should be generated:
+    - `Build`
+        - `Build.data.unityweb`
+        - `Build.json`
+        - `Build.wasm.code.unityweb`
+        - `Build.wasm.framework.unityweb`
+        - `UnityLoader.js`
+    - `TemplateData`
+    - `index.html`
+4. Simply upload the contents to a static host or cloud storage such as `Github Pages` or `Amazon S3`.
+5. Feel free to modify `index.html` and `TemplateData` to customise the web page or replace them with the template provided in: [https://github.com/bymi15/uniworldsrc/tree/main/CustomBuild](https://github.com/bymi15/uniworldsrc/tree/main/CustomBuild)
