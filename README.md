@@ -9,4 +9,5 @@ Source code for UniWorld - UCL MEng Final Year Project with IBM
 
 ## Note
 - The contents of `Assets/Scripts/Networking/Voice` will not be included
-- You will need to purchase the [Voice Pro - WebGL, Mobile, Desktop](https://assetstore.unity.com/packages/tools/input-management/voice-pro-webgl-mobile-desktop-169274) asset from the Unity Asset Store and copy the contents of the asset into the empty Voice folder
+- The implementation of voice communication utilises the [Voice Pro - WebGL, Mobile, Desktop](https://assetstore.unity.com/packages/tools/input-management/voice-pro-webgl-mobile-desktop-169274) asset which was purchased from the Unity Asset Store. If necessary, purchase this asset and copy the contents into the `Assets/Scripts/Networking/Voice`.
+- Otherwise, remove the script `Assets/Scripts/Networking/VoiceManager.cs` and remove the VoiceManager game object from the Connect scene.
